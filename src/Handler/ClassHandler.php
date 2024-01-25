@@ -13,7 +13,7 @@ class ClassHandler
         $this->classes = $this->normalise($classes);
     }
 
-    public function attr(): string
+    public function __toString(): string
     {
         return sprintf('class="%s"', $this->get());
     }

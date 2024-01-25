@@ -18,8 +18,7 @@
         $_mainBorderColor,
         $_mainBackgroundColor
       ])
-      ->merge($class ?? null)
-      ->attr();
+      ->merge($class ?? null);
 ?>
 
 <div role="alert" <?= $_class ?>>

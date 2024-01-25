@@ -2,22 +2,30 @@
 
 declare(strict_types=1);
 
-function fw_class(array|string|null $classes): FST\Weave\Handler\ClassHandler
+use FST\Weave\Handler\ClassHandler;
+use FST\Weave\Component;
+
+function fw_class(array|string|null $classes): ClassHandler
 {
-    return new FST\Weave\Handler\ClassHandler($classes);
+    return new ClassHandler($classes);
 }
 
-function fw_push(string $template, array $data = []): void
+function fw_fetch(string $template, array $data = []): string
 {
-    FST\Weave\Component::getInstance()->push($template, $data);
+    return Component::getInstance()->render($template, $data);
 }
 
 function fw_pop(): void
 {
-    FST\Weave\Component::getInstance()->pop();
+    Component::getInstance()->pop();
 }
 
-function fw_render(string $template, array $data = []): string
+function fw_push(string $template, array $data = []): void
 {
-    return FST\Weave\Component::getInstance()->render($template, $data);
+    Component::getInstance()->push($template, $data);
+}
+
+function fw_render(string $template, array $data = []): void
+{
+    echo Component::getInstance()->render($template, $data);
 }

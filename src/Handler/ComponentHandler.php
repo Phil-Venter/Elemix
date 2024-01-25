@@ -23,6 +23,8 @@ class ComponentHandler implements ComponentHandlerContract
      */
     protected array $stack = [];
 
+    protected array $directories = [];
+
     /**
      * Component constructor.
      *
@@ -42,6 +44,17 @@ class ComponentHandler implements ComponentHandlerContract
         }
 
         $this->directory = rtrim($directory, '/');
+    }
+
+    public function addDirectory($key, $directory): static
+    {
+        if (!is_dir($directory)) {
+            throw new ComponentDirectoryNotExistException($directory);
+        }
+
+        $this->directories[$key] = rtrim($directory, '/');
+
+        return $this;
     }
 
     /**
@@ -123,7 +136,19 @@ class ComponentHandler implements ComponentHandlerContract
      */
     protected function createPathFromName(string $template): string
     {
-        $path = sprintf('%s/%s.%s', $this->directory, $template, $this->extension);
+        $key = 'default';
+        $directory = $this->directory;
+
+        if (str_contains($template, '::')) {
+            [$key, $template] = explode('::', $template);
+            $directory = $this->directories[$key] ?? null;
+        }
+
+        if (null === $directory) {
+            throw new ComponentDirectoryNotExistException($key);
+        }
+
+        $path = sprintf('%s/%s.%s', $directory, $template, $this->extension);
 
         if (!is_file($path)) {
             throw new ComponentDoesNotExistException($path);
