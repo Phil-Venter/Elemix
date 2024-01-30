@@ -6,7 +6,7 @@ namespace FST\Weave\Exception;
 
 use Exception;
 
-class ComponentDirectoryNotExistException extends Exception
+class DirectoryDoesNotExistException extends Exception
 {
     public function __construct(string $directory)
     {

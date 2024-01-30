@@ -6,7 +6,7 @@ namespace FST\Weave\Exception;
 
 use Exception;
 
-class ComponentDoesNotExistException extends Exception
+class TemplateDoesNotExistException extends Exception
 {
     public function __construct(string $path)
     {

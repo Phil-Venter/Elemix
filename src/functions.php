@@ -2,30 +2,65 @@
 
 declare(strict_types=1);
 
-use FST\Weave\Handler\ClassHandler;
-use FST\Weave\Component;
-
-function fw_class(array|string|null $classes): ClassHandler
-{
-    return new ClassHandler($classes);
+if (!function_exists('weave_classify')) {
+    function weave_classify(array|string|null $classes): FST\Weave\Handler\Classify
+    {
+        return new FST\Weave\Handler\Classify($classes);
+    }
 }
 
-function fw_fetch(string $template, array $data = []): string
-{
-    return Component::getInstance()->render($template, $data);
+if (!function_exists('weave_component')) {
+    function weave_component(string $template, array $data = []): void
+    {
+        FST\Weave\Weave::getInstance()->getComponent()->start($template, $data);
+    }
 }
 
-function fw_pop(): void
-{
-    Component::getInstance()->pop();
+if (!function_exists('weave_end_component')) {
+    function weave_end_component(): void
+    {
+        FST\Weave\Weave::getInstance()->getComponent()->stop();
+    }
 }
 
-function fw_push(string $template, array $data = []): void
-{
-    Component::getInstance()->push($template, $data);
+if (!function_exists('weave_layout')) {
+    function weave_layout(string $template, array $data = []): void
+    {
+        FST\Weave\Weave::getInstance()->getTemplate()->layout($template, $data);
+    }
 }
 
-function fw_render(string $template, array $data = []): void
-{
-    echo Component::getInstance()->render($template, $data);
+if (!function_exists('weave_section')) {
+    function weave_section(string $name): void
+    {
+        FST\Weave\Weave::getInstance()->getTemplate()->start($name);
+    }
+}
+
+if (!function_exists('weave_end_section')) {
+    function weave_end_section(): void
+    {
+        FST\Weave\Weave::getInstance()->getTemplate()->stop();
+    }
+}
+
+if (!function_exists('weave_get_section')) {
+    function weave_get_section(string $name, $default = null): void
+    {
+        echo FST\Weave\Weave::getInstance()->getTemplate()->sections[$name] ?? $default ?? '';
+    }
+}
+
+if (!function_exists('weave_fetch')) {
+    function weave_fetch(string $template, array $data = []): string
+    {
+        return FST\Weave\Weave::getInstance()->makeTemplate($template, $data)->render();
+    }
+}
+
+if (!function_exists('weave_insert')) {
+    function weave_insert(string $template, array $data = []): void
+    {
+        echo FST\Weave\Weave::getInstance()->makeTemplate($template, $data)->render();
+    }
 }

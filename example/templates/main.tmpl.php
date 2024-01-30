@@ -1,16 +1,11 @@
-<script src="https://cdn.tailwindcss.com"></script>
+<?php weave_layout('layout::single', [ 'title' => 'Main Page' ]) ?>
 
+<?php if ($error ?? false): ?>
+    <?php weave_section('alert') ?>
+        <?php weave_component('component::alert', ['class' => 'bg-red-200 border-red-600 text-red-900 mb-4', 'title' => ($error['title'] ?? null)]) ?>
+            <?= $error['message'] ?? '' ?>
+        <?php weave_end_component() ?>
+    <?php weave_end_section() ?>
+<?php endif ?>
 
-<?php fw_push('component::container') ?>
-    <?php fw_push('component::alert', ['class' => 'mt-4', 'color' => 'red', 'title' => 'FOO']) ?>
-        consequat voluptate Lorem voluptate id occaecat irure laborum Lorem id eu sit elit ad qui ad occaecat non ad tempor
-    <?php fw_pop() ?>
-
-    <?php fw_push('component::alert', ['class' => 'mt-4', 'title' => 'BAR']) ?>
-        consectetur enim dolor exercitation adipisicing culpa pariatur ea aliqua duis
-    <?php fw_pop() ?>
-
-    <?php fw_push('component::alert', ['class' => 'mt-4', 'color' => 'green', 'title' => 'BAZ']) ?>
-        consequat ex enim labore nulla id laboris non culpa elit
-    <?php fw_pop() ?>
-<?php fw_pop() ?>
+Carry on my wayward son

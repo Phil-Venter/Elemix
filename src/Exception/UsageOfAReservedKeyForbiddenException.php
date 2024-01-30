@@ -6,7 +6,7 @@ namespace FST\Weave\Exception;
 
 use Exception;
 
-class ComponentUsingAReservedKeyException extends Exception
+class UsageOfAReservedKeyForbiddenException extends Exception
 {
     public function __construct(string $key)
     {

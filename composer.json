@@ -1,8 +1,7 @@
 {
     "autoload": {
         "psr-4": {
-            "FST\\Weave\\": "src/",
-            "TMP\\": "tmp/"
+            "FST\\Weave\\": "src/"
         },
         "files": [
             "src/functions.php"

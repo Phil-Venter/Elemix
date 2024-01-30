@@ -1,13 +1,11 @@
 <?php
 
-use FST\Weave\Component;
-use FST\Weave\Handler\ComponentHandler;
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
-Component::bind(
-    (new ComponentHandler(__DIR__ . '/templates/'))
-        ->addDirectory('component', __DIR__ . '/components/')
-);
+FST\Weave\Weave::bind((new FST\Weave\Engine(__DIR__ . '/templates/'))
+    ->addDirectory('layout', __DIR__ . '/layouts/')
+    ->addDirectory('component', __DIR__ . '/components/'));
 
-fw_render('main');
+echo FST\Weave\Weave::getInstance()
+    ->makeTemplate('main', ['error' => ['title' => 'FOO', 'message' => 'BAR']])
+    ->render();

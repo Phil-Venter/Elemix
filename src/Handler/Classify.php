@@ -4,12 +4,25 @@ declare(strict_types=1);
 
 namespace FST\Weave\Handler;
 
-class ClassHandler
+use function array_fill_keys;
+use function array_filter;
+use function array_is_list;
+use function array_keys;
+use function array_map;
+use function array_merge;
+use function explode;
+use function filter_var;
+use function implode;
+use function is_string;
+use function sprintf;
+
+class Classify
 {
     protected array $classes = [];
 
-    public function __construct(array|string|null $classes)
-    {
+    public function __construct(
+        array|string|null $classes,
+    ) {
         $this->classes = $this->normalise($classes);
     }
 
@@ -18,20 +31,29 @@ class ClassHandler
         return sprintf('class="%s"', $this->get());
     }
 
-    public function merge(array|string|null $classes): static
+    protected function filterVar(mixed $class): bool
     {
-        $this->classes = array_merge(
-            $this->classes,
-            $this->normalise($classes)
-        );
-
-        return $this;
+        return filter_var($class, FILTER_VALIDATE_BOOL);
     }
 
     public function get(): string
     {
         $classes = array_filter($this->classes, [$this, 'filterVar']);
         return implode(' ', array_keys($classes));
+    }
+
+    public function merge(array|string|null $classes): static
+    {
+        if (empty($classes)) {
+            return $this;
+        }
+
+        $this->classes = array_merge(
+            $this->classes,
+            $this->normalise($classes)
+        );
+
+        return $this;
     }
 
     protected function normalise(array|string|null $classes): array
@@ -49,10 +71,5 @@ class ClassHandler
         }
 
         return array_map([$this, 'filterVar'], $classes);
-    }
-
-    protected function filterVar(mixed $class): bool
-    {
-        return filter_var($class, FILTER_VALIDATE_BOOL);
     }
 }
