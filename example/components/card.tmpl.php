@@ -1,7 +1,7 @@
 <?php $class = classify(
-    'container mx-auto'
+    'p-4'
 )->merge($class ?? null) ?>
 
-<div :class="$class">
+<article :class="$class">
     <?= $slot ?>
-</div>
+</article>

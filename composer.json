@@ -1,10 +1,10 @@
 {
-    "autoload": {
-        "psr-4": {
-            "FST\\Weave\\": "src/"
-        },
-        "files": [
-            "src/functions.php"
-        ]
-    }
+  "autoload": {
+    "psr-4": {
+      "Elemix\\": "src/"
+    },
+    "files": [
+      "src/functions.php"
+    ]
+  }
 }

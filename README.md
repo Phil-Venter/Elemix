@@ -1,104 +1,119 @@
-# Weave PHP Templating Engine README
+# Elemix
 
-Weave is a lightweight and flexible PHP templating engine inspired by the simplicity and elegance of Blade and Plates. Designed to streamline the process of rendering dynamic HTML content, Weave focuses on providing an intuitive and straightforward API for managing templates, components, and layout compositions.
+**Component-Driven PHP Templating System**
 
-## Overview
-
-Weave enables developers to create reusable template components, manage content sections, and maintain a clean separation between PHP logic and HTML structure. Drawing inspiration from the well-established Blade and Plates templating engines, Weave allows you to easily bind data to your templates and construct complex layouts with minimal effort.
+Elemix is a small simple yet powerful and flexible PHP templating system designed to streamline the development of dynamic web applications. By leveraging a component-driven approach, Elemix enables developers to build reusable and maintainable code, enhancing productivity and facilitating collaboration.
 
 ## Features
 
-- **Classify Component**: Handles dynamic CSS class generation based on conditions, providing a simple interface for managing CSS classes in your HTML templates.
-- **Component Management**: Facilitates the creation of reusable, nestable components that can be embedded within other templates or components, promoting code reuse and maintainability.
-- **Template Inheritance**: Supports layout inheritance, allowing you to define a base layout and override specific sections in child templates.
-- **Content Section Management**: Enables the definition and injection of content sections within layouts and templates, offering flexibility in content organization.
-- **Weave Singleton**: Utilizes a singleton pattern for the main engine instance, ensuring a single point of access and management for the templating engine.
-- **Directory Management**: Allows specification of multiple directories for organizing templates, enabling the use of a `directory_key::template_name` syntax to reference templates across different directories.
+- **Component-Based Architecture**: Organize your UI into manageable, reusable components for a cleaner and more maintainable codebase.
+- **Class Handling**: Dynamically manage CSS classes for your components, allowing for more flexible styling.
+- **Path Management**: Configure and manage paths for components and templates, simplifying the organization of your project's file structure.
 
-## Getting Started
+## Installation
 
-Before you can utilize the Weave functions, you need to initialize the Weave singleton with your templates directory. Here's how you can do it:
+[TBA]
 
-```php
-FST\Weave\Weave::bind(new FST\Weave\Engine(__DIR__ . '/templates/'));
-```
+Ensure your project follows the PSR-4 autoloading standard to seamlessly autoload Elemix classes.
 
-### Specifying Additional Directories and Custom Template Extension
+## Quick Start
 
-You can add additional directories to the engine for better organization of your templates and specify a custom template file extension if needed. Once added, you can reference templates in these directories using the `key::template` syntax:
+### Setting Up
+
+First, initialize Elemix by setting up the path handler and binding the component handler:
 
 ```php
-$engine = new FST\Weave\Engine(__DIR__ . '/default_templates/', 'custom_ext.php');
-$engine->addDirectory('custom', __DIR__ . '/custom_templates/');
-FST\Weave\Weave::bind($engine);
+require_once __DIR__ . '/../vendor/autoload.php';
 
-// Now you can reference templates in the custom directory like this:
-weave_insert('custom::your_template_name', ['dataKey' => 'dataValue']);
+// Initialize Handlers
+$pathHandler = new Elemix\Handler\PathHandler(__DIR__ . '/components/', 'tmpl.php');
+$renderHandler = new Elemix\Handler\RenderHandler($pathHandler);
+$componentHandler = new Elemix\Handler\ComponentHandler($renderHandler);
+
+// Bind the main Component Handler
+Elemix\Component::bind($componentHandler);
 ```
-The second parameter in the Engine constructor is optional and allows you to define a custom extension for your template files, defaulting to 'tmpl.php'.
 
-## Usage
+### Rendering Components
 
-### Defining and Rendering Templates
-
-Create your templates as PHP files in the designated templates directory. Use the `weave_insert` function to render a template and inject it directly into the HTML output:
+To render a component, use the `Elemix\Component::render` method with the component's template name and any data you wish to pass:
 
 ```php
-weave_insert('your_template_name', ['dataKey' => 'dataValue']);
+echo Elemix\Component::render('template::main', ['name' => 'World']);
 ```
 
-### Working with Components
+### Creating Components
 
-Define a component start and end in your templates using the `weave_component` and `weave_end_component` functions. This allows you to encapsulate and reuse parts of your templates. Components are nestable, so you can easily compose complex UIs by embedding components within other components:
+Components are defined in `.tmpl.php` files within your specified components directory. Use the `c-` prefix to denote component tags in your templates.
+
+Example (`components/card/card.tmpl.php`):
 
 ```php
-weave_component('parent_component_name', ['dataKey' => 'dataValue']);
-    // Parent component content here
-    
-    weave_component('child_component_name', ['dataKey' => 'dataValue']);
-    // Child component content here
-    weave_end_component();
-    
-weave_end_component();
+<div class="card">
+  <div class="card-header"><?= $title ?></div>
+  <div class="card-body"><?= $content ?></div>
+</div>
 ```
 
-### Managing Layouts and Sections
+## Advanced Usage
 
-Use the `weave_layout` function to specify a base layout for your template. Define sections within your templates and layouts using `weave_section` and `weave_end_section`:
+### Custom Class Handling
+
+Utilize the `Elemix\Component::classify` method to dynamically manage CSS classes for components:
 
 ```php
-weave_layout('layout_name', ['dataKey' => 'dataValue']);
-weave_section('section_name');
-// Your section content here
-weave_end_section();
+$classHandler = Elemix\Component::classify('btn btn-primary');
+echo $classHandler; // Outputs: btn btn-primary
 ```
 
-Retrieve and display a section's content using the `weave_get_section` function:
+### Utilizing Optional Syntax for Component Definition [WIP]
+
+Elemix introduces an optional syntax that simplifies the definition of components within your templates, making them more readable and easier to manage. This feature allows developers to write component tags in a manner similar to HTML, enhancing the development experience without sacrificing the power or flexibility of PHP.
+
+#### Before Compilation
+
+Traditionally, components in Elemix are called using PHP methods, as shown below:
 
 ```php
-weave_get_section('section_name', 'Default content if section is not set');
+<?php Elemix\Component::start('container') ?>
+    <?= Elemix\Component::render('image', ['src' => '<url>']) ?>
+<?= Elemix\Component::end() ?>
 ```
 
-### Fetching Rendered Content
+#### Optional Syntax
 
-To fetch the rendered content of a template as a string (instead of directly outputting it), use the `weave_fetch` function:
+With the optional syntax and the help of `CompilationHandler`, the same component structure can be written as:
 
-```php
-$content = weave_fetch('your_template_name', ['dataKey' => 'dataValue']);
+```html
+<c-container>
+    <c-image src="<url>"/>
+</c-container>
 ```
 
-## Handling Exceptions
+#### Enabling Optional Syntax
 
-Be mindful of the custom exceptions provided by Weave:
+To use this syntax, your project must utilize the `CompilationHandler`, which parses and compiles these custom tags into their PHP equivalents during the template compilation process. This ensures that the templates remain performant, as the compilation step is done ahead of time, and not during every request.
 
-- `ExpectsDataToBeAnAssocArray`: Ensures that the data passed to components and templates are associative arrays.
-- `StackIsEmptyException`: Thrown when attempting to stop a component or section without a corresponding start.
-- `UsageOfAReservedKeyForbiddenException`: Prevents the use of reserved keys in your data arrays.
-- `DirectoryDoesNotExistException`: Ensures that the specified template directory exists.
-- `EngineNotBoundException`: Ensures that the Weave engine is properly initialized before use.
+##### Steps to Implement:
 
-Handle these exceptions appropriately in your application to ensure a smooth templating experience.
+1. **Configure `CompilationHandler`**: Ensure that your `CompilationHandler` is properly set up and integrated into your project's template rendering pipeline.
 
-## Conclusion
+2. **Write Templates Using Optional Syntax**: Create your templates using the simplified component tags. You can mix traditional PHP and this optional syntax within the same template file.
 
-Weave provides a simple yet powerful templating engine for PHP, offering an easy way to manage templates, components, and layouts. The addition of directory management for organizing templates enriches Weave's flexibility, enabling sophisticated and dynamic web page structures. By following the guidelines in this README, you can leverage Weave's features to create maintainable and reusable template structures for your PHP applications.
+3. **Compile Templates**: During the build or deployment process, run your templates through the `CompilationHandler`. This process converts the simplified syntax into executable PHP code, ready for server-side rendering.
+
+4. **Deployment**: Deploy the compiled templates as part of your application. The compiled code is optimized for performance, eliminating the need for real-time compilation on the server.
+
+#### Benefits
+
+- **Improved Readability**: The optional syntax closely resembles standard HTML, making templates easier to understand and edit, especially for front-end developers familiar with HTML but less so with PHP.
+- **Maintainability**: Simplifies template management by abstracting the PHP logic into a more declarative form.
+- **Performance**: Pre-compiling templates ensures that the conversion overhead is incurred only once, improving runtime performance.
+
+## Contributing
+
+Contributions are welcome! Feel free to submit pull requests or create issues for bugs, features, or documentation improvements.
+
+## License
+
+Elemix is open-sourced software licensed under the [MIT license](LICENSE.md).

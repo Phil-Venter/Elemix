@@ -2,10 +2,38 @@
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-FST\Weave\Weave::bind((new FST\Weave\Engine(__DIR__ . '/templates/'))
-    ->addDirectory('layout', __DIR__ . '/layouts/')
-    ->addDirectory('component', __DIR__ . '/components/'));
+// SETUP
+$pathHandler = (new Elemix\Handler\PathHandler(
+    __DIR__ . '/components/',
+    'tmpl.php'
+))
+    ->add('card', __DIR__ . '/components/card/')
+    ->add('template', __DIR__ . '/templates/');
 
-echo FST\Weave\Weave::getInstance()
-    ->makeTemplate('main', ['error' => ['title' => 'FOO', 'message' => 'BAR']])
-    ->render();
+$compilationCacheDir = __DIR__ . '/.cache/';
+if (!is_dir($compilationCacheDir)) {
+    mkdir($compilationCacheDir, 0755, true);
+}
+$compilationCacheHandler = new Elemix\Handler\PathHandler(
+    $compilationCacheDir,
+    'cache.php',
+);
+
+$compilationHandler = new Elemix\Handler\CompilationHandler(
+    Elemix\Component::class,
+    $pathHandler,
+    $compilationCacheHandler,
+);
+
+$renderHandler = new Elemix\Handler\RenderHandler(
+    $compilationHandler,
+);
+
+$componentHandler = new Elemix\Handler\ComponentHandler(
+    $renderHandler
+);
+
+Elemix\Component::bind($componentHandler);
+
+// RUN
+echo Elemix\Component::render('template::main', ['name' => 'Document']);
