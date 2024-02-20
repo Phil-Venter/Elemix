@@ -23,7 +23,7 @@ final class ClassHandler implements ClassHandlerContract
 
     public function get(): string
     {
-        $classes = \array_filter($this->classes, [$this, 'filterValue']);
+        $classes = \array_filter($this->classes);
 
         return \implode(' ', \array_keys($classes));
     }
@@ -59,14 +59,12 @@ final class ClassHandler implements ClassHandlerContract
             $classes = \array_fill_keys(\array_filter($classes), true);
         }
 
-        $classes = \array_map([$this, 'filterValue'], $classes);
+        $classes = \array_map(
+            fn ($val) => \filter_var($val, FILTER_VALIDATE_BOOL),
+            $classes,
+        );
 
         return $this->splitGroupedKeys($classes);
-    }
-
-    private function filterValue(mixed $active): bool
-    {
-        return \filter_var($active, FILTER_VALIDATE_BOOL);
     }
 
     private function splitGroupedKeys(array $classes): array
@@ -74,6 +72,12 @@ final class ClassHandler implements ClassHandlerContract
         $result = [];
 
         foreach ($classes as $keys => $val) {
+            if (!\str_contains(' ', $keys)) {
+                $result[$keys] = $val;
+
+                continue;
+            }
+
             foreach (\explode(' ', $keys) as $key) {
                 $result[$key] = $val;
             }

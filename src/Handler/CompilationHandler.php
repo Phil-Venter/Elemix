@@ -30,9 +30,9 @@ final class CompilationHandler implements PathHandlerContract
         $templatePath = $this->templateHandler->create($template);
         $cachePath = $this->cacheHandler->create(\sha1($template));
 
-        // if (\is_file($cachePath) && \filemtime($templatePath) < \filemtime($cachePath)) {
-        //     return $cachePath;
-        // }
+        if (\is_file($cachePath) && \filemtime($templatePath) < \filemtime($cachePath)) {
+            return $cachePath;
+        }
 
         $content = \file_get_contents($templatePath);
 
