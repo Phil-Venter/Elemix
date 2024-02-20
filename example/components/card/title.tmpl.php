@@ -1,7 +1,3 @@
-<?php $class = classify(
-    'text-lg font-medium text-gray-900'
-)->merge($class ?? null) ?>
-
-<h3 :class="$class">
+<h3 :class="classify('text-lg font-medium text-gray-900')->merge($class ?? null)">
     <?= $slot ?>
 </h3>

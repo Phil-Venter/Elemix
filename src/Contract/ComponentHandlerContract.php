@@ -8,5 +8,5 @@ interface ComponentHandlerContract
 {
     public function start(string $template, array $data = []): void;
 
-    public function end(): string;
+    public function stop(string $template): string;
 }

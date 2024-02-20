@@ -1,7 +1,3 @@
-<?php $class = classify(
-    'container mx-auto'
-)->merge($class ?? null) ?>
-
-<div :class="$class">
+<div :class="classify('container mx-auto')->merge($class ?? null)">
     <?= $slot ?>
 </div>

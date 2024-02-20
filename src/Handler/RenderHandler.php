@@ -18,10 +18,11 @@ final class RenderHandler implements RenderHandlerContract
     {
         \ob_start();
 
-        (function () use ($template, $data) {
+        (function ($template, $data) {
             \extract($data);
+
             require $this->pathHandler->create($template);
-        })();
+        })($template, $data);
 
         return \ob_get_clean();
     }

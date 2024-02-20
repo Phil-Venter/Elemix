@@ -6,6 +6,8 @@ namespace Elemix\Handler;
 
 use Elemix\Contract\ComponentHandlerContract;
 use Elemix\Contract\RenderHandlerContract;
+use Elemix\Exception\NoOpenTagsForTheCloseTagException;
+use Elemix\Exception\OpenCloseTagsDoNotMatchException;
 
 final class ComponentHandler implements ComponentHandlerContract, RenderHandlerContract
 {
@@ -25,8 +27,18 @@ final class ComponentHandler implements ComponentHandlerContract, RenderHandlerC
         \ob_start();
     }
 
-    public function end(): string
+    public function stop(string $template): string
     {
+        if ($this->stack->isEmpty()) {
+            throw new NoOpenTagsForTheCloseTagException;
+        }
+
+        [$_template,] = $this->stack->top();
+
+        if ($_template !== $template) {
+            throw new OpenCloseTagsDoNotMatchException;
+        }
+
         [$template, $data] = $this->stack->pop();
         $data[self::KEY] = \ob_get_clean();
         return $this->render($template, $data);

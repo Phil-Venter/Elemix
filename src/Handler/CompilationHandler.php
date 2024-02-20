@@ -4,111 +4,225 @@ declare(strict_types=1);
 
 namespace Elemix\Handler;
 
+use RyanChandler\Lexical\LexicalBuilder;
+
 use Elemix\Contract\PathHandlerContract;
-use Elemix\Exception\OpenCloseTagsDoNotMatch;
+use Elemix\Contract\TokenType;
 
 final class CompilationHandler implements PathHandlerContract
 {
-    private const COMPONENT_OPEN        = '~<\s*c-(?<tag>[a-z][a-z0-9:_-]*)(?<attr>(?:[^/>]*))>~i';
-    private const COMPONENT_CLOSE       = '~</\s*c-(?<tag>[a-z][a-z0-9:_-]*)\s*>~i';
-    private const COMPONENT_SELF_CLOSE  = '~<\s*c-(?<tag>[a-z][a-z0-9:_-]*)(?<attr>(?:[^/>]*))/>~i';
-    private const ATTRIBUTE_INTERPOLATE = '~:(?<attr>[a-z][a-z0-9-]*)="(?<value>[^"]*)"~i';
-    private const ATTRIBUTE_RAW         = '~(?<attr>[a-z][a-z0-9-]*)="(?<value>[^"]*)"~i';
+    private const ATTRIBUTE = '/(?<key>[a-z][a-z0-9]+)="(?<val>[^"]+)"/';
+
+    private ?string $tag = null;
+    private bool $component = false;
+    private bool $close = false;
+    private array $attributes = [];
+    private string $output = '';
 
     public function __construct(
-        private string $component,
-        private PathHandlerContract $pathHandler,
+        private PathHandlerContract $templateHandler,
         private PathHandlerContract $cacheHandler,
     ) {
     }
 
     public function create(string $template): string
     {
-        $templatePath = $this->pathHandler->create($template);
-        $cachePath = $this->cacheHandler->create(\md5($template));
+        $templatePath = $this->templateHandler->create($template);
+        $cachePath = $this->cacheHandler->create(\sha1($template));
 
-        if (\is_file($cachePath) && \filemtime($cachePath) > \filemtime($templatePath)) {
-            return $cachePath;
-        }
+        // if (\is_file($cachePath) && \filemtime($templatePath) < \filemtime($cachePath)) {
+        //     return $cachePath;
+        // }
 
         $content = \file_get_contents($templatePath);
 
-        if (!$this->validate($content)) {
-            throw new OpenCloseTagsDoNotMatch($templatePath);
-        }
+        $tokens = (new LexicalBuilder)
+            ->readTokenTypesFrom(TokenType::class)
+            ->produceTokenUsing(fn (TokenType $type, string $literal) => [$type, $literal])
+            ->build()
+            ->tokenise($content);
 
-        $compiled = $this->compileTemplate($content);
+        $compiled = $this->compile($tokens);
+
         \file_put_contents($cachePath, $compiled);
-
         return $cachePath;
     }
 
-    private function validate(string $content): bool
+    private function compile(array $tokens): string
     {
-        \preg_match_all(self::COMPONENT_OPEN, $content, $openMatches);
-        \preg_match_all(self::COMPONENT_CLOSE, $content, $closeMatches);
+        $this->output = '';
+        $this->reset();
 
-        $diff1 = \array_diff($openMatches['tag'] ?? [], $closeMatches['tag'] ?? []);
-        $diff2 = \array_diff($closeMatches['tag'] ?? [], $openMatches['tag'] ?? []);
+        foreach ($tokens as [$token, $literal]) {
+            if (\in_array($token, [
+                TokenType::HEADER,
+                TokenType::RAW_PHP,
+                TokenType::LITERRAL,
+            ])) {
+                if (null !== $this->tag) {
+                    continue;
+                }
 
-        return [] === $diff1 && [] === $diff2;
-    }
+                $this->output .= $literal;
 
-    private function compileTemplate(string $content): string
-    {
-        $replacements = [
-            self::COMPONENT_OPEN => fn ($match) =>
-            \vsprintf("<?php /* OPEN %2\$s */ %1\$s::start('%2\$s', %3\$s) ?>", [
-                $this->component,
-                $match['tag'],
-                $this->compileAttributes($match['attr'] ?? ''),
-            ]),
+                continue;
+            }
 
-            self::COMPONENT_CLOSE => fn ($match) =>
-            \vsprintf("<?php /* CLOSE %2\$s */ echo %1\$s::end() ?>", [
-                $this->component,
-                $match['tag'],
-            ]),
+            if (\in_array($token, [
+                TokenType::COMPONENT_OPEN,
+                TokenType::COMPONENT_CLOSE_OPEN,
+                TokenType::TAG_OPEN,
+                TokenType::TAG_CLOSE_OPEN,
+            ])) {
+                $this->reset();
 
-            self::COMPONENT_SELF_CLOSE => fn ($match) =>
-            \vsprintf("<?php /* SELF CLOSING %2\$s */ echo %1\$s::render('%2\$s', %3\$s) ?>", [
-                $this->component,
-                $match['tag'],
-                $this->compileAttributes($match['attr'] ?? ''),
-            ]),
+                $this->tag = match ($token) {
+                    TokenType::COMPONENT_OPEN => str_replace('<c-', '', $literal),
+                    TokenType::COMPONENT_CLOSE_OPEN => str_replace('</c-', '', $literal),
+                    TokenType::TAG_OPEN => str_replace('<', '', $literal),
+                    TokenType::TAG_CLOSE_OPEN => str_replace('</', '', $literal),
+                };
 
-            self::ATTRIBUTE_INTERPOLATE => fn ($match) =>
-            \vsprintf("%s=\"<?= htmlentities(%s ?? '') ?>\"", [
-                \trim($match['attr'] ?? ''),
-                \trim($match['value'] ?? ''),
-            ]),
-        ];
+                $this->component = \in_array($token, [
+                    TokenType::COMPONENT_OPEN,
+                    TokenType::COMPONENT_CLOSE_OPEN
+                ]);
 
-        return \preg_replace_callback_array($replacements, $content);
-    }
+                $this->close = \in_array($token, [
+                    TokenType::COMPONENT_CLOSE_OPEN,
+                    TokenType::TAG_CLOSE_OPEN
+                ]);
 
-    private function compileAttributes(string $content): string
-    {
-        if ('' === \trim($content)) {
-            return '[]';
+                continue;
+            }
+
+            if (TokenType::ATTRIBUTE_RAW === $token) {
+                \preg_match(self::ATTRIBUTE, $literal, $matches);
+
+                $format = $this->component
+                    ? "'%s' => '%s'"
+                    : '%s="%s"';
+
+                $this->attributes[] = \sprintf(
+                    $format,
+                    $matches['key'],
+                    $matches['val'],
+                );
+
+                continue;
+            }
+
+            if (TokenType::ATTRIBUTE_PHP === $token) {
+                \preg_match(self::ATTRIBUTE, $literal, $matches);
+
+                $format = $this->component
+                    ? "'%s' => %s"
+                    : '%s="<?= %s ?? \'\' ?>"';
+
+                $this->attributes[] = \sprintf(
+                    $format,
+                    $matches['key'],
+                    $matches['val'],
+                );
+
+                continue;
+            }
+
+            if (TokenType::TAG_CLOSE === $token && $this->component && !$this->close) {
+                $format = \count($this->attributes) > 0
+                    ? "<?php start('%s', [%s]) ?>"
+                    : "<?php start('%s') ?>";
+
+                $this->output .= \sprintf(
+                    $format,
+                    $this->tag,
+                    \implode(', ', $this->attributes),
+                );
+
+                $this->reset();
+
+                continue;
+            }
+
+            if (TokenType::TAG_CLOSE === $token && $this->component && $this->close) {
+                $this->output .= \sprintf(
+                    "<?= stop('%s') ?>",
+                    $this->tag,
+                );
+
+                $this->reset();
+
+                continue;
+            }
+
+            if (TokenType::TAG_SELF_CLOSE === $token && $this->component) {
+                $format = \count($this->attributes) > 0
+                    ? "<?php render('%s', [%s]) ?>"
+                    : "<?php render('%s') ?>";
+
+                $this->output .= \sprintf(
+                    $format,
+                    $this->tag,
+                    \implode(', ', $this->attributes)
+                );
+
+                $this->reset();
+
+                continue;
+            }
+
+            if (TokenType::TAG_CLOSE === $token && !$this->component && !$this->close) {
+                $format = \count($this->attributes) > 0
+                    ? '<%s %s>'
+                    : '<%s>';
+
+                $this->output .= \sprintf(
+                    $format,
+                    $this->tag,
+                    \implode(' ', $this->attributes),
+                );
+
+                $this->reset();
+
+                continue;
+            }
+
+            if (TokenType::TAG_CLOSE === $token && !$this->component && $this->close) {
+                $this->output .= \sprintf(
+                    '</%s>',
+                    $this->tag,
+                );
+
+                $this->reset();
+
+                continue;
+            }
+
+            if (TokenType::TAG_SELF_CLOSE === $token && !$this->component) {
+                $format = \count($this->attributes) > 0
+                    ? '<%s %s/>'
+                    : '<%s/>';
+
+                $this->output .= \sprintf(
+                    $format,
+                    $this->tag,
+                    \implode(' ', $this->attributes),
+                );
+
+                $this->reset();
+
+                continue;
+            }
         }
 
-        $replacements = [
-            self::ATTRIBUTE_INTERPOLATE => fn ($match) =>
-            \vsprintf(" '%s' => %s, ", [
-                \trim($match['attr'] ?? ''),
-                \trim($match['value'] ?? ''),
-            ]),
+        return $this->output;
+    }
 
-            self::ATTRIBUTE_RAW => fn ($match) =>
-            \vsprintf(" '%s' => htmlentities('%s'), ", [
-                \trim($match['attr'] ?? ''),
-                \trim($match['value'] ?? ''),
-            ]),
-        ];
-
-        $content = \preg_replace_callback_array($replacements, $content);
-
-        return '[' . \trim(\preg_replace('/\s+/', ' ', $content), " \n\r\t\v\x00,") . ']';
+    private function reset(): void
+    {
+        $this->tag = null;
+        $this->component = false;
+        $this->close = false;
+        $this->attributes = [];
     }
 }

@@ -1,7 +1,3 @@
-<?php $class = classify(
-    'p-4'
-)->merge($class ?? null) ?>
-
-<article :class="$class">
+<article :class="classify('p-4')->merge($class ?? null)">
     <?= $slot ?>
 </article>

@@ -15,8 +15,7 @@
 
             <c-card::title>quis exercitation aute aliqua occaecat</c-card::title>
 
-            <?php $cardBodyClass = ['bg-red-300' => false]; ?>
-            <c-card::body :red="true" :class="$cardBodyClass">
+            <c-card::body :red="true" :class="['bg-red-300' => false]">
                 sunt anim mollit tempor qui amet ullamco sunt amet tempor elit fugiat sunt voluptate
                 et do non ex adipisicing Lorem nisi mollit adipisicing elit dolore enim excepteur do
                 ea ullamco incididunt tempor veniam quis reprehenderit excepteur dolore nostrud commodo

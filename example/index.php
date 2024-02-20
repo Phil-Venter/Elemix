@@ -20,7 +20,6 @@ $compilationCacheHandler = new Elemix\Handler\PathHandler(
 );
 
 $compilationHandler = new Elemix\Handler\CompilationHandler(
-    Elemix\Component::class,
     $pathHandler,
     $compilationCacheHandler,
 );
@@ -36,4 +35,4 @@ $componentHandler = new Elemix\Handler\ComponentHandler(
 Elemix\Component::bind($componentHandler);
 
 // RUN
-echo Elemix\Component::render('template::main', ['name' => 'Document']);
+echo render('template::main', ['name' => 'Document']);
